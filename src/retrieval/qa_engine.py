@@ -8,6 +8,7 @@ import httpx
 from src.config import settings
 from src.models.api import EntityCitation, GraphPathSegment, QueryRequest, QueryResponse, RetrievedChunk
 from src.retrieval.hybrid_retriever import HybridRetriever
+from src.retrieval.safety_guardrails import TwoBarrierSafetyGuardrail
 
 logger = logging.getLogger(__name__)
 
@@ -41,10 +42,12 @@ class WellboreQAEngine:
     def __init__(
         self,
         retriever: Optional[HybridRetriever] = None,
+        safety_guardrail: Optional[TwoBarrierSafetyGuardrail] = None,
         ollama_url: str = settings.OLLAMA_BASE_URL,
         model: str = settings.OLLAMA_LLM_MODEL,
     ):
         self.retriever = retriever or HybridRetriever()
+        self.safety_guardrail = safety_guardrail or TwoBarrierSafetyGuardrail()
         self.ollama_url = ollama_url.rstrip("/")
         self.model = model
 
@@ -72,10 +75,14 @@ class WellboreQAEngine:
             citations=citations,
         )
 
-        # 4. Calculate Confidence Score
+        # 4. Audit Well Control Two-Barrier Rule Compliance
+        audit = self.safety_guardrail.audit_engineering_response(request.question, answer)
+        answer += self.safety_guardrail.format_barrier_appendix(audit)
+
+        # 5. Calculate Confidence Score
         confidence = self._compute_confidence(chunks, paths, citations)
 
-        # 5. Extract consulted sources
+        # 6. Extract consulted sources
         sources = list({c.doc_id for c in chunks})
 
         return QueryResponse(

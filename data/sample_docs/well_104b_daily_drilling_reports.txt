@@ -1,0 +1,32 @@
+DAILY DRILLING REPORT #13
+Well Name: Well 104-B
+Date: 2024-08-12
+Midnight Depth: 10,250 ft
+Progress: 420 ft
+Mud Weight: 11.2 ppg
+NPT: 0.0 hrs
+Operations Summary:
+Drilled 8-1/2 inch hole from 9,830 ft to 10,250 ft through Draupne Formation. Parameters: 25 klb WOB, 110 RPM, 650 GPM, SPP 2,450 psi. Shaker visual inspection indicated normal cutting volume with minor tabular shale cavings.
+
+---
+DAILY DRILLING REPORT #14
+Well Name: Well 104-B
+Date: 2024-08-13
+Midnight Depth: 10,480 ft
+Progress: 230 ft
+Mud Weight: 11.5 ppg
+NPT: 3.5 hrs
+Operations Summary:
+Drilling ahead in Draupne reactive shale. At 10,475 ft, experienced standpipe pressure fluctuate between 2,700 and 3,200 psi with high torque erratic spikes. Flowline returns showed heavy sloughing splintery cavings indicating cuttings accumulation bed. Initiated short trip back to casing shoe per SOP-SP-774. Incurred 3.5 hours NPT circulating weighted pill.
+
+---
+DAILY DRILLING REPORT #15
+Well Name: Well 104-B
+Date: 2024-08-14
+Midnight Depth: 10,500 ft
+Progress: 20 ft
+Mud Weight: 12.1 ppg
+NPT: 20.5 hrs
+Incidents: INC-2024-008
+Operations Summary:
+Attempted to resume drilling from 10,480 ft to 10,500 ft. Drillstring suffered sudden pack-off (FAIL-PACKOFF) around BHA with mud motor MM-775-A1 stalling and SPP spiking to 4,100 psi. Pump shut down. String became mechanically stuck. Initiated jar activation and spot acid soak per SOP-SP-774. Logged incident INC-2024-008 with 20.5 hours NPT.

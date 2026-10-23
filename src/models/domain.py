@@ -66,6 +66,61 @@ class IncidentEntity(BaseModel):
     corrective_actions: List[str] = Field(default_factory=list, description="Immediate corrective actions taken")
 
 
+class BHAComponentEntity(BaseModel):
+    """Represents a component in a Bottom Hole Assembly (BHA)."""
+    component_id: str = Field(..., description="Component identifier, e.g. 'BHA1-COMP-BIT'")
+    order_index: int = Field(..., description="Position in string from bit upwards (1 = bit)")
+    component_type: str = Field(..., description="e.g. 'PDC Bit', 'Mud Motor', 'MWD Tool', 'Drill Collar', 'Stabilizer'")
+    serial_number: Optional[str] = Field(None, description="Asset serial number if serialized")
+    outer_diameter_in: Optional[float] = Field(None, description="Outer diameter in inches")
+    inner_diameter_in: Optional[float] = Field(None, description="Inner diameter in inches")
+    length_ft: Optional[float] = Field(None, description="Length of tool joint or sub in feet")
+
+
+class BHAEntity(BaseModel):
+    """Represents a Bottom Hole Assembly (BHA) run."""
+    bha_id: str = Field(..., description="BHA run designation, e.g. 'BHA-RUN-01'")
+    well_name: str = Field(..., description="Associated well")
+    run_number: int = Field(default=1, description="Run sequence number")
+    hole_size_in: float = Field(..., description="Hole size in inches, e.g. 8.5 or 12.25")
+    depth_in_ft: Optional[float] = Field(None, description="Measured depth in feet when tripped in")
+    depth_out_ft: Optional[float] = Field(None, description="Measured depth in feet when tripped out")
+    components: List[BHAComponentEntity] = Field(default_factory=list, description="Ordered components from bottom to top")
+
+
+class TrajectoryPoint(BaseModel):
+    """Survey directional station along the wellbore."""
+    station_md_ft: float = Field(..., description="Measured Depth in feet")
+    tvd_ft: float = Field(..., description="True Vertical Depth in feet")
+    inclination_deg: float = Field(..., description="Inclination angle in degrees")
+    azimuth_deg: float = Field(..., description="Azimuth angle in degrees")
+    dogleg_severity: Optional[float] = Field(None, description="DLS in degrees/100ft")
+
+
+class WellLogCurve(BaseModel):
+    """Discrete depth frame of wireline or LWD drilling sensor parameters."""
+    depth_md_ft: float = Field(..., description="Measured Depth")
+    rate_of_penetration_fph: Optional[float] = Field(None, description="ROP in ft/hr")
+    standpipe_pressure_psi: Optional[float] = Field(None, description="SPP in PSI")
+    torque_kft_lb: Optional[float] = Field(None, description="Surface Torque")
+    flow_rate_gpm: Optional[float] = Field(None, description="Mud circulation flow rate")
+    pit_gain_bbl: Optional[float] = Field(None, description="Pit volume deviation")
+    gamma_ray_api: Optional[float] = Field(None, description="Gamma Ray in API units")
+
+
+class DDREntry(BaseModel):
+    """Daily Drilling Report (DDR) operational record."""
+    report_number: int = Field(..., description="Sequential report number, e.g. 14")
+    well_name: str = Field(..., description="Well name")
+    report_date: str = Field(..., description="Date of report, YYYY-MM-DD")
+    current_depth_ft: float = Field(..., description="Measured depth at 24:00")
+    progress_24hr_ft: float = Field(default=0.0, description="Footage drilled in 24 hours")
+    mud_weight_ppg: Optional[float] = Field(None, description="Active mud weight in ppg")
+    operations_summary: str = Field(..., description="Summary of past 24 hours operations")
+    npt_hours: float = Field(default=0.0, description="Non-productive time in hours")
+    incidents_reported: List[str] = Field(default_factory=list, description="Incident IDs reported in this DDR")
+
+
 class Relationship(BaseModel):
     """Represents a typed relationship between entities in the graph."""
     source_type: str = Field(..., description="Source node label, e.g. 'Well', 'Incident', 'FailureMode', 'Equipment'")
@@ -95,4 +150,6 @@ class WellboreExtractionResult(BaseModel):
     failure_modes: List[FailureModeEntity] = Field(default_factory=list)
     sops: List[SOPEntity] = Field(default_factory=list)
     incidents: List[IncidentEntity] = Field(default_factory=list)
+    bhas: List[BHAEntity] = Field(default_factory=list)
+    ddrs: List[DDREntry] = Field(default_factory=list)
     relationships: List[Relationship] = Field(default_factory=list)

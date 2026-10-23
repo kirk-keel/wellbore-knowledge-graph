@@ -115,6 +115,16 @@ classDiagram
         string description
     }
 
+    class DDR {
+        int report_number
+        string well_name
+        string report_date
+        float current_depth_ft
+        float progress_24hr_ft
+        float npt_hours
+        string operations_summary
+    }
+
     DocumentChunk --> Document : EXTRACTED_FROM
     DocumentChunk --> Well : MENTIONS
     DocumentChunk --> Equipment : MENTIONS
@@ -123,6 +133,9 @@ classDiagram
     DocumentChunk --> SOP : MENTIONS
     DocumentChunk --> Incident : MENTIONS
 
+    DDR --> DDR : NEXT_REPORT
+    DDR --> Well : RECORDED_FOR_WELL
+    DDR --> Incident : REPORTED_INCIDENT
     Well --> Formation : PENETRATES
     Well --> Equipment : USES_EQUIPMENT
     Incident --> Well : OCCURRED_IN_WELL
@@ -149,10 +162,18 @@ classDiagram
 - **Vector Index**: Neo4j-native vector index (`chunk_vector_index`) using cosine similarity.
 - **Graph Traversal**: Traverses from seed text chunks to mentioned assets, then expands 1 to 2 hops across failure modes, past incident non-productive time (NPT), and mitigating procedures.
 
-### C. Anti-Hallucination QA Engine
+### C. Anti-Hallucination QA Engine & Safety Guardrails
 - **Constraint-Grounded Reasoning**: Answers are generated strictly from verified graph paths and retrieved text excerpts.
+- **Two-Barrier Rule Safety Guardrail**: Automated compliance audit against API RP 53 / NORSOK D-010 standards to guarantee both primary (hydrostatic) and secondary (BOP preventer/shear ram) barrier requirements are validated for well control guidance.
 - **Traceable Attribution**: Output includes exact entity identifiers, parent standard codes, and the explicit Cypher traversal trail.
-- **Defensive Fallback**: If evidence is missing, the system explicitly reports lack of data rather than hallucinating plausible engineering values.
+- **Reciprocal Rank Fusion (RRF) Reranking**: Merges dense vector proximity with graph topological centrality.
+
+### D. Advanced Analytics & Operations Tools
+- **Text-to-Cypher Agent**: Converts quantitative questions into read-only Cypher queries (e.g. cumulative NPT hours, failure frequencies).
+- **Hierarchical Community Detection**: Clusters formations, wells, and equipment into operational risk communities.
+- **Interactive Visual Subgraph Explorer**: Web console built with Cytoscape.js available at `/api/v1/dashboard`.
+- **Server-Sent Events (SSE) Streaming**: Token-by-token streaming with live graph traversal discovery notifications (`/api/v1/query/stream`).
+- **CWLS LAS 2.0 & DDR Timelines**: Ingestion for wireline/LWD logs and chronological daily drilling report chains (`NEXT_REPORT`).
 
 ---
 
@@ -282,6 +303,25 @@ Supports technical engineering PDFs, daily drilling reports (DDR), well programs
 
 ### 4. Graph Statistics
 `GET /api/v1/graph/stats`
+
+### 5. Quantitative Text-to-Cypher Query
+`POST /api/v1/query/cypher`
+```json
+{
+  "question": "What is the total cumulative NPT hours across all wells?"
+}
+```
+
+### 6. Global Risk Communities & Macro Summaries
+- `GET /api/v1/graph/communities`
+- `GET /api/v1/graph/communities/{community_id}/summary`
+
+### 7. Interactive Graph Dashboard & Visualizer
+Access the interactive web visualizer in your browser at:
+`http://localhost:8000/api/v1/dashboard`
+
+### 8. Streaming GraphRAG (SSE)
+`GET /api/v1/query/stream?question=How+to+shut+in+on+a+gas+kick?`
 
 ---
 

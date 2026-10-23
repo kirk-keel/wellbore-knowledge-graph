@@ -20,8 +20,10 @@ from src.graph.queries import (
 from src.ingestion.chunker import WellboreDomainChunker
 from src.ingestion.entity_extractor import WellboreEntityExtractor
 from src.ingestion.pdf_parser import TechnicalDocumentParser
+from src.ingestion.las_parser import LASDocumentParser
+from src.ingestion.ddr_timeline import DDRTimelineParser
 from src.models.api import IngestResponse
-from src.models.domain import DocumentChunk, WellboreExtractionResult
+from src.models.domain import DocumentChunk, WellboreExtractionResult, Relationship, FailureModeEntity
 
 logger = logging.getLogger(__name__)
 
@@ -49,8 +51,60 @@ class IngestionPipeline:
         self.in_memory_extractions: Dict[str, WellboreExtractionResult] = {}
 
     def ingest_file(self, file_path: str | Path, doc_id: Optional[str] = None, category: str = "engineering_manual") -> IngestResponse:
-        """Process and ingest a local file (PDF, TXT, MD) into the Knowledge Graph."""
+        """Process and ingest a local file (PDF, TXT, MD, LAS, DDR) into the Knowledge Graph."""
         path = Path(file_path)
+        actual_doc_id = doc_id or path.stem
+
+        if path.suffix.lower() == ".las":
+            las_parser = LASDocumentParser()
+            well, curves, anomalies = las_parser.parse_las_file(path)
+
+            summary_text = (
+                f"# WELL LOG CURVE SUMMARY: {well.name}\n"
+                f"Field: {well.field} | Operator: {well.operator} | Total Depth: {well.total_depth_ft} ft\n"
+                f"Total Depth Intervals Logged: {len(curves)}\n\n"
+                f"## DOWNHOLE ANOMALY FLAGS & PRECURSORS\n"
+            )
+            for anom in anomalies:
+                summary_text += f"- Depth {anom['depth_ft']} ft: [{anom['severity']}] {anom['anomaly_type']} ({anom['failure_mode']}) - {anom['details']}\n"
+
+            raw_docs = self.parser.parse_raw_text(
+                summary_text,
+                title=f"LWD Log {path.name}",
+                doc_id=actual_doc_id,
+                metadata={"source": path.name, "category": "well_log", "well_name": well.name},
+            )
+            response = self._process_langchain_documents(raw_docs, actual_doc_id, category="well_log", title=f"LWD Log {path.name}")
+            
+            # Inject LAS well and anomaly failure modes into extraction cache
+            if actual_doc_id in self.in_memory_extractions:
+                ext = self.in_memory_extractions[actual_doc_id]
+                ext.wells.append(well)
+                for anom in anomalies:
+                    ext.failure_modes.append(FailureModeEntity(
+                        code=anom["failure_mode"],
+                        failure_type=anom["anomaly_type"],
+                        severity=anom["severity"],
+                        description=anom["details"],
+                    ))
+            return response
+
+        elif "ddr" in path.stem.lower() or "daily_drilling_reports" in path.stem.lower():
+            ddr_parser = DDRTimelineParser()
+            text_content = path.read_text(encoding="utf-8", errors="replace")
+            ddrs, ddr_rels = ddr_parser.parse_ddr_text(text_content)
+
+            meta = {"source": path.name, "category": "daily_drilling_report"}
+            raw_docs = self.parser.parse_file(path, doc_id=actual_doc_id, metadata=meta)
+            response = self._process_langchain_documents(raw_docs, actual_doc_id, category="daily_drilling_report", title=path.name)
+
+            # Store DDR entries and temporal sequence
+            if actual_doc_id in self.in_memory_extractions:
+                ext = self.in_memory_extractions[actual_doc_id]
+                ext.ddrs.extend(ddrs)
+                ext.relationships.extend(ddr_rels)
+            return response
+
         meta = {"source": path.name, "category": category}
         raw_docs = self.parser.parse_file(path, doc_id=doc_id, metadata=meta)
         return self._process_langchain_documents(raw_docs, doc_id or path.stem, category=category, title=path.name)
