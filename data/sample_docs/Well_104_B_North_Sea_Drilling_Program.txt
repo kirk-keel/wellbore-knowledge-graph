@@ -1,0 +1,21 @@
+# WELL PROGRAM & DRILLING CASING DESIGN: WELL 104-B
+Document ID: WP-NS-104B
+Well Name: Well 104-B
+Basin / Field: North Sea Alvheim Block 24/6
+Total Planned Depth: 12,500 ft MD
+
+1.0 GEOLOGICAL STRATIGRAPHY & LITHOLOGY
+The wellbore trajectory traverses the following stratigraphic sequence:
+- Brent Sandstone: Top depth 8,400 ft MD. Highly porous deltaic sandstone interval with excellent reservoir permeability.
+- Draupne Formation: Top depth 9,850 ft MD. Organic-rich reactive shale with severe sloughing tendencies and potential pack-off hazard.
+- Eagle Ford Shale (analog reference section): Sensitive to mud water loss and high differential sticking potential.
+
+2.0 BOTTOM HOLE ASSEMBLY (BHA) & EQUIPMENT ASSETS
+- Drilling Assembly: 8-1/2 inch PDC Bit with Positive Displacement Mud Motor
+  - Mud Motor Serial Number: MM-775-A1
+  - MWD Directional Sensor: MWD-TENSOR-882
+  - Casing String: CSG-958-L80 (9-5/8 inch casing at 8,200 ft shoe)
+
+3.0 DRILLING RISKS & MITIGATION PROCEDURES
+Due to unstable shales in Draupne and high borehole tortuosity, the primary operational hazard is drillstring pack-off (FAIL-PACKOFF) and mechanical stuck pipe.
+All drillers and directional contractors must adhere to SOP-SP-774 (Drillstring Packoff Remediation) whenever standpipe pressure fluctuates by more than 250 psi.

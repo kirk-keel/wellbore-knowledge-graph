@@ -1,0 +1,39 @@
+# OFFSHORE INCIDENT REPORT: DEEPWATER TITAN WELL 01
+Incident Reference: INC-2024-008
+Well Name: Deepwater Titan Well
+Operator: Apex Deepwater Exploration
+Field: Gulf of Mexico - Mississippi Canyon
+Water Depth: 5,420 ft
+Date of Occurrence: 2024-08-14
+
+1.0 INCIDENT SUMMARY
+During drilling operations at measured depth 16,400 ft MD while penetrating the Norphlet Formation, the rig crew encountered a sudden 18 bbl pit gain and standpipe pressure decrease. The rig activated the subsea BOP Stack (Serial Number: BOP-HYD-5000-08, 15,000 psi working pressure rated). 
+
+Upon closing the middle pipe ram, hydraulic telemetry indicated insufficient closing pressure and continuous pressure bleed-off, confirming a Ram Leak failure mode (FAIL-RAMLEAK) combined with an active Gas Kick (FAIL-KICK).
+
+2.0 EQUIPMENT INVOLVED
+- Equipment: Blowout Preventer Stack
+  - Serial Number: BOP-HYD-5000-08
+  - Manufacturer: Cameron
+  - Rating: 15000 psi
+  - Component: Upper & Middle Pipe Rams
+- Equipment: Positive Displacement Mud Motor
+  - Serial Number: MM-775-A1
+  - Manufacturer: NOV
+
+3.0 FORMATION CHARACTERISTICS
+- Target Interval: Norphlet Formation
+  - Lithology: Fine-grained Sandstone with interbedded tight shale
+  - Top Depth: 16,100 ft MD
+  - Bottom Depth: 17,800 ft MD
+  - Estimated Pore Pressure: 14.8 ppg
+  - Hazards: Overpressured Gas, High Pressure High Temperature (HPHT)
+
+4.0 FAILURE MODE & ROOT CAUSE ANALYSIS
+- Failure Mode Tag: FAIL-RAMLEAK (BOP Ram Leak)
+- Secondary Mode: FAIL-KICK (Gas Influx)
+Root cause investigation revealed seal degradation on the hydraulic actuator piston ring seals due to thermal degradation exceeding 320°F. 
+Total Non-Productive Time (NPT): 48.5 hours incurred while circulating out the gas kick using kill-weight mud and deploying secondary blind shear rams.
+
+5.0 CORRECTIVE ACTIONS & MITIGATION SOPS
+Operations were stabilized under SOP-SHUTIN-01 and API-RP-53 maintenance guidelines. The BOP hydraulic control system was recertified with elastomer replacement per manufacturer bulletin.

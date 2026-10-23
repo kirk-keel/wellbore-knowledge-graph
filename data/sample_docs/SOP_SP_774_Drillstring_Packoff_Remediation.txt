@@ -1,0 +1,22 @@
+# STANDARD OPERATING PROCEDURE: DRILLSTRING PACKOFF REMEDIATION
+Document Code: SOP-SP-774
+Parent Standard: IADC Drilling Manual Chapter B
+Category: Drilling Operations & Remediation
+Target Hazards: Sloughing Shale, Cuttings Accumulation, Differential Sticking
+
+1.0 SYMPTOMS OF PACK-OFF (FAIL-PACKOFF)
+Pack-off manifests downhole when reactive shale cavings or cuttings beds choke the annular space around the drill collars or bottom hole assembly.
+Key surface symptoms include:
+- Rapid increase in Standpipe Pressure (SPP) exceeding normal circulating baseline by > 300 psi.
+- Loss or restriction of drilling mud returns at the shaker flowline.
+- Eradication of rotary table torque or sudden top drive stalling.
+
+2.0 IMMEDIATE REMEDIATION SEQUENCE
+Step 1: Instantly reduce mud pump flow rate to 50% to prevent exceeding formation fracture gradient.
+Step 2: Slack off drillstring weight while maintaining moderate right-hand torque (do NOT apply excessive overpull immediately, as this wedges the BHA tighter).
+Step 3: Attempt gentle reciprocal movement of the string (10-20 ft strokes).
+Step 4: Pump a low-viscosity / high-density weighted pill (40 bbl) to loosen cuttings packing around BHA.
+Step 5: Gradually increase flow rate while observing standpipe pressure. If pressure normalizes, resume circulating at full rate for two bottoms-up before advancing drilling.
+
+3.0 BARRIER & EQUIPMENT INTEGRITY
+Ensure continuous monitoring of mud motor MM-775-A1 differential pressure during pack-off clearing to avoid motor stator elastomer debonding or rotor stalling.

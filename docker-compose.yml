@@ -1,0 +1,73 @@
+services:
+  neo4j:
+    image: neo4j:5.20.0-community
+    container_name: wellbore-neo4j
+    ports:
+      - "7474:7474"  # Neo4j Browser UI
+      - "7687:7687"  # Bolt protocol endpoint
+    environment:
+      - NEO4J_AUTH=neo4j/wellborepassword123
+      - NEO4J_PLUGINS=["apoc"]
+      - NEO4J_dbms_security_procedures_unrestricted=apoc.*
+      - NEO4J_dbms_security_procedures_allowlist=apoc.*
+      - NEO4J_server_memory_heap_initial__size=1G
+      - NEO4J_server_memory_heap_max__size=2G
+      - NEO4J_server_memory_pagecache_size=1G
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+      - neo4j_plugins:/plugins
+    healthcheck:
+      test: ["CMD-SHELL", "cypher-shell -u neo4j -p wellborepassword123 'RETURN 1;' || exit 1"]
+      interval: 10s
+      timeout: 10s
+      retries: 6
+      start_period: 25s
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: wellbore-ollama
+    ports:
+      - "11434:11434"  # Ollama REST API
+    volumes:
+      - ollama_models:/root/.ollama
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list > /dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 5
+      start_period: 15s
+    restart: unless-stopped
+
+  api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: wellbore-graphrag-api
+    ports:
+      - "8000:8000"  # FastAPI service
+    depends_on:
+      neo4j:
+        condition: service_healthy
+      ollama:
+        condition: service_healthy
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=wellborepassword123
+      - NEO4J_DATABASE=neo4j
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - OLLAMA_LLM_MODEL=llama3.2:latest
+      - OLLAMA_EMBED_MODEL=nomic-embed-text
+      - EMBEDDING_DIMENSION=384
+      - ENVIRONMENT=production
+    restart: unless-stopped
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
+  neo4j_plugins:
+  ollama_models:

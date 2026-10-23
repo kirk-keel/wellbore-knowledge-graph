@@ -1,0 +1,25 @@
+# IADC WELL CONTROL GUIDELINES & STANDARD OPERATING PROCEDURES
+Standard Reference: IADC-WCC-04 (Well Control Committee)
+Category: Well Control Operations
+Revision: Rev 4.2
+
+1.0 PURPOSE AND SCOPE
+This standard defines the mandatory operational protocol for kick detection, influx containment, and wellbore barrier verification during drilling and tripping operations.
+
+2.0 PRIMARY WELL CONTROL BARRIER
+The hydrostatic pressure of the drilling fluid column represents the primary barrier against formation pore pressure. In formations exhibiting pore pressure gradients exceeding 12.5 ppg (such as Eagle Ford Shale and Haynesville Shale), real-time monitoring of active pit volume and flowline returns is mandatory.
+
+3.0 SECONDARY WELL CONTROL & SHUT-IN PROCEDURE: SOP-SHUTIN-01
+Upon detection of any pit gain exceeding 5 bbl or flow with mud pumps off, the drilling crew must immediately initiate the Soft Shut-In Procedure (SOP-SHUTIN-01):
+Step 1: Space out the drillstring such that no tool joint is positioned across the BOP preventer rams.
+Step 2: Stop the rotary table and disengage top drive rotation.
+Step 3: Shut down the mud circulating pumps (PUMP-NOV-14P-01).
+Step 4: Open the hydraulic choke line valve on the choke manifold.
+Step 5: Close the Annular Preventer (or upper pipe rams on BOP-HYD-5000-08).
+Step 6: Slowly close the remote hydraulic choke to isolate the wellbore.
+Step 7: Record Initial Shut-In Drillpipe Pressure (SIDPP) and Shut-In Casing Pressure (SICP) at 3-minute intervals.
+
+4.0 FAILURE MODES & MITIGATION CONTROLS
+- Failure Mode: Annular Kick (FAIL-KICK): Uncontrolled formation fluid influx. Immediate mitigation via SOP-SHUTIN-01 and circulating influx out using Driller's Method.
+- Failure Mode: BOP Ram Leak (FAIL-RAMLEAK): Loss of hydraulic seal across preventer rams. Mitigation governed by API-RP-53 maintenance protocols and accumulator drawdown tests.
+- Failure Mode: Drillstring Pack-off (FAIL-PACKOFF): Cuttings bed accumulation causing sudden annular restriction, pressure surges, and lost circulation.

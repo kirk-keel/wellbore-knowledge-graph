@@ -1,0 +1,49 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Catalog /Pages 2 0 R >>
+endobj
+2 0 obj
+<< /Type /Pages /Kids [3 0 R] /Count 1 >>
+endobj
+3 0 obj
+<< /Type /Page /Parent 2 0 R /Resources << /Font << /F1 4 0 R >> >> /MediaBox [0 0 612 792] /Contents 5 0 R >>
+endobj
+4 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+5 0 obj
+<< /Length 493 >>
+stream
+BT
+/F1 12 Tf
+50 720 Td
+(INCIDENT INVESTIGATION REPORT: TITAN SUBSEA BOP FAILURE) Tj
+0 -25 Td
+(Well: Deepwater Titan Well | Location: Gulf of Mexico) Tj
+0 -20 Td
+(Penetrating Norphlet Formation Sandstone at 16,100 ft) Tj
+0 -20 Td
+(Asset Serial Number: BOP-HYD-5000-08 | Rating: 15,000 psi) Tj
+0 -20 Td
+(Observed Failure Mode: FAIL-RAMLEAK ram leak during gas influx) Tj
+0 -20 Td
+(Total NPT: 48.5 hours incurred) Tj
+0 -20 Td
+(Mandatory Remediation: SOP-SHUTIN-01 and API-RP-53 compliance) Tj
+ET
+
+endstream
+endobj
+xref
+0 6
+0000000000 65535 f 
+0000000009 00000 n 
+0000000058 00000 n 
+0000000115 00000 n 
+0000000241 00000 n 
+0000000311 00000 n 
+trailer
+<< /Size 6 /Root 1 0 R >>
+startxref
+855
+%%EOF
