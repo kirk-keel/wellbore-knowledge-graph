@@ -323,6 +323,50 @@ Access the interactive web visualizer in your browser at:
 ### 8. Streaming GraphRAG (SSE)
 `GET /api/v1/query/stream?question=How+to+shut+in+on+a+gas+kick?`
 
+### 9. Casing Integrity & MASP Verification
+`POST /api/v1/engineering/casing-check`
+```json
+{
+  "casing_serial_or_tag": "CSG-958-L80",
+  "shoe_depth_tvd_ft": 12500.0,
+  "target_formation_ppg": 14.8,
+  "mud_weight_ppg": 15.2
+}
+```
+
+### 10. Automated 5-Whys RCFA Post-Mortem Report
+`POST /api/v1/reports/rcfa`
+```json
+{
+  "incident_id": "INC-2024-008",
+  "well_name": "Deepwater Titan Well"
+}
+```
+
+### 11. Real-Time Telemetry Stream & Anomaly Watchdog
+`POST /api/v1/telemetry/stream`
+```json
+{
+  "timestamp_utc": "2024-08-14T10:05:00Z",
+  "depth_ft": 10480.0,
+  "standpipe_pressure_psi": 3550.0,
+  "torque_kft_lb": 28.0
+}
+```
+
+### 12. Multi-Agent Drilling Advisory Panel
+`POST /api/v1/query/multi-agent`
+```json
+{
+  "inquiry": "What procedures mitigate drillstring pack-off and gas influx?",
+  "well_name": "Well 104-B"
+}
+```
+
+### 13. Wellbore 2D Casing Schematic & SVG
+- `GET /api/v1/wellbore/{well_name}/schematic` (JSON Architecture & SVG)
+- `GET /api/v1/wellbore/{well_name}/schematic.svg` (Direct Vector SVG)
+
 ---
 
 ## 6. Running Tests

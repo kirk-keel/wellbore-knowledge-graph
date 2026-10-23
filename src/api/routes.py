@@ -7,7 +7,7 @@ import shutil
 import tempfile
 import asyncio
 from typing import Any, Dict, List
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status, Query
+from fastapi import APIRouter, File, Form, HTTPException, UploadFile, status, Query, Response
 from fastapi.responses import HTMLResponse, StreamingResponse
 
 from src.config import settings
@@ -31,6 +31,11 @@ from src.retrieval.qa_engine import WellboreQAEngine
 from src.retrieval.vector_search import Neo4jVectorRetriever
 from src.retrieval.text_to_cypher import TextToCypherAgent
 from src.retrieval.community_summary import CommunityDetector
+from src.retrieval.casing_calculator import CasingIntegrityCalculator, CasingIntegrityRequest, CasingIntegrityReport
+from src.retrieval.rcfa_generator import RCFAGenerator, RCFARequest, RCFAReport
+from src.ingestion.telemetry_stream import TelemetryWatchdog, TelemetryFrame, PrecursorAlert
+from src.retrieval.multi_agent import MultiAgentDrillingPanel, MultiAgentAdvisoryReport
+from src.retrieval.wellbore_schematic import WellboreSchematicGenerator, WellboreSchematicData
 
 logger = logging.getLogger(__name__)
 
@@ -43,6 +48,11 @@ hybrid_retriever = HybridRetriever(vector_retriever=vector_retriever, graph_trav
 qa_engine = WellboreQAEngine(retriever=hybrid_retriever)
 text_to_cypher_agent = TextToCypherAgent(graph_client=neo4j_client, pipeline=ingestion_pipeline)
 community_detector = CommunityDetector(graph_client=neo4j_client, pipeline=ingestion_pipeline)
+casing_calculator = CasingIntegrityCalculator()
+rcfa_generator = RCFAGenerator(graph_client=neo4j_client, pipeline=ingestion_pipeline)
+telemetry_watchdog = TelemetryWatchdog(pipeline=ingestion_pipeline)
+multi_agent_panel = MultiAgentDrillingPanel(qa_engine=qa_engine, retriever=hybrid_retriever)
+schematic_generator = WellboreSchematicGenerator()
 
 
 @router.get("/health", summary="Service health status")
@@ -365,6 +375,94 @@ async def get_visual_graph():
     return {"elements": {"nodes": nodes, "edges": edges}}
 
 
+@router.post("/engineering/casing-check", response_model=CasingIntegrityReport, summary="Evaluate Casing Burst, Collapse & MASP")
+async def evaluate_casing(payload: CasingIntegrityRequest):
+    """Calculates downhole geomechanical loads, MASP, and verifies casing structural margins."""
+    try:
+        return casing_calculator.evaluate_casing_integrity(payload)
+    except Exception as e:
+        logger.error("Error evaluating casing integrity: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/reports/rcfa", response_model=RCFAReport, summary="Generate 5-Whys RCFA Post-Mortem Report")
+async def generate_rcfa_report(payload: RCFARequest):
+    """Constructs 5-Whys causal hierarchy and generates formal IADC post-mortem report."""
+    try:
+        return rcfa_generator.generate_rcfa(payload)
+    except Exception as e:
+        logger.error("Error generating RCFA: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/telemetry/stream", summary="Ingest Real-Time Drilling Telemetry")
+async def ingest_telemetry(payload: Dict[str, Any]):
+    """
+    Ingests real-time drilling telemetry frame(s) and checks for active failure precursors
+    against the Knowledge Graph (pack-off, kick, drilling break).
+    """
+    try:
+        if "frames" in payload:
+            frames = [TelemetryFrame(**f) for f in payload["frames"]]
+            alerts = telemetry_watchdog.ingest_batch(frames)
+            return {"status": "INGESTED", "frames_count": len(frames), "alerts_triggered": alerts}
+        else:
+            frame = TelemetryFrame(**payload)
+            alert = telemetry_watchdog.ingest_frame(frame)
+            return {
+                "status": "ALERT_TRIGGERED" if alert else "NORMAL",
+                "alert": alert,
+                "frame_logged": frame,
+            }
+    except Exception as e:
+        logger.error("Error ingesting telemetry: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/telemetry/alerts", response_model=List[PrecursorAlert], summary="List Active Precursor Alerts")
+async def list_telemetry_alerts():
+    """Returns active real-time precursor alerts."""
+    return telemetry_watchdog.active_alerts
+
+
+@router.post("/query/multi-agent", response_model=MultiAgentAdvisoryReport, summary="Multi-Agent Specialist Panel Consultation")
+async def query_multi_agent(payload: Dict[str, str]):
+    """
+    Executes collaborative multi-agent inquiry across 4 drilling specialist roles:
+    Superintendent, Geomechanics, Equipment Reliability, and Statutory Well Control Auditor.
+    """
+    inquiry = payload.get("inquiry")
+    if not inquiry:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Field 'inquiry' is required.")
+    well_name = payload.get("well_name", "Well 104-B")
+    try:
+        return multi_agent_panel.consult(inquiry=inquiry, well_name=well_name)
+    except Exception as e:
+        logger.error("Error in multi-agent consultation: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/wellbore/{well_name}/schematic", response_model=WellboreSchematicData, summary="Get Wellbore Schematic Data & SVG")
+async def get_wellbore_schematic(well_name: str):
+    """Returns 2D wellbore casing architecture and SVG rendering."""
+    try:
+        return schematic_generator.generate_schematic(well_name=well_name)
+    except Exception as e:
+        logger.error("Error generating wellbore schematic: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/wellbore/{well_name}/schematic.svg", summary="Direct SVG Rendering of Wellbore Schematic")
+async def get_wellbore_schematic_svg(well_name: str):
+    """Directly serves Scalable Vector Graphics (.svg) schematic."""
+    try:
+        data = schematic_generator.generate_schematic(well_name=well_name)
+        return Response(content=data.svg_schematic, media_type="image/svg+xml")
+    except Exception as e:
+        logger.error("Error generating SVG schematic: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
 @router.get("/dashboard", response_class=HTMLResponse, summary="Interactive Graph Dashboard")
 async def get_dashboard():
     """Serves the interactive Subgraph Visualizer & GraphRAG web console."""
@@ -372,37 +470,109 @@ async def get_dashboard():
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Wellbore Knowledge Graph Explorer</title>
+  <title>Wellbore Knowledge Graph Explorer & Engineering Console</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/cytoscape/3.28.1/cytoscape.min.js"></script>
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
     body { background-color: #0f172a; color: #f8fafc; display: flex; flex-direction: column; height: 100vh; }
-    header { background: #1e293b; padding: 14px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; }
+    header { background: #1e293b; padding: 12px 24px; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid #334155; }
     header h1 { font-size: 1.15rem; font-weight: 600; color: #38bdf8; display: flex; align-items: center; gap: 8px; }
     .badge { background: #0284c7; color: white; padding: 2px 8px; border-radius: 9999px; font-size: 0.75rem; }
-    .main-container { display: flex; flex: 1; overflow: hidden; }
-    #cy { flex: 1; height: 100%; background: #0b1120; }
-    .sidebar { width: 380px; background: #1e293b; border-left: 1px solid #334155; display: flex; flex-direction: column; }
-    .panel { padding: 18px; border-bottom: 1px solid #334155; }
-    .panel h2 { font-size: 0.95rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 12px; }
+    .nav-tabs { display: flex; gap: 8px; }
+    .tab-btn { background: #334155; border: none; color: #94a3b8; padding: 6px 14px; border-radius: 6px; font-size: 0.82rem; font-weight: 500; cursor: pointer; transition: 0.2s; }
+    .tab-btn.active { background: #0284c7; color: white; }
+    .main-container { display: flex; flex: 1; overflow: hidden; position: relative; }
+    .view-content { flex: 1; height: 100%; display: none; overflow-y: auto; background: #0b1120; }
+    .view-content.active { display: flex; }
+    #cy { flex: 1; height: 100%; }
+    .sidebar { width: 400px; background: #1e293b; border-left: 1px solid #334155; display: flex; flex-direction: column; }
+    .panel { padding: 16px; border-bottom: 1px solid #334155; }
+    .panel h2 { font-size: 0.9rem; font-weight: 600; color: #94a3b8; text-transform: uppercase; letter-spacing: 0.05em; margin-bottom: 10px; }
     .legend { display: flex; flex-wrap: wrap; gap: 8px; }
-    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.8rem; }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; }
     .dot { width: 10px; height: 10px; border-radius: 50%; }
-    .query-box textarea { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; resize: vertical; min-height: 70px; }
-    .query-box button { margin-top: 8px; width: 100%; background: #0284c7; color: white; border: none; padding: 10px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; }
+    .query-box textarea { width: 100%; background: #0f172a; border: 1px solid #334155; color: white; padding: 10px; border-radius: 6px; resize: vertical; min-height: 70px; font-size: 0.85rem; }
+    .query-box button { margin-top: 8px; width: 100%; background: #0284c7; color: white; border: none; padding: 9px; border-radius: 6px; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 0.85rem; }
     .query-box button:hover { background: #0369a1; }
-    .results-area { flex: 1; overflow-y: auto; padding: 18px; font-size: 0.85rem; line-height: 1.5; color: #cbd5e1; }
+    .results-area { flex: 1; overflow-y: auto; padding: 16px; font-size: 0.85rem; line-height: 1.5; color: #cbd5e1; }
     .node-card { background: #0f172a; padding: 12px; border-radius: 6px; border: 1px solid #334155; margin-bottom: 12px; }
     .node-card h3 { color: #38bdf8; font-size: 0.9rem; margin-bottom: 4px; }
+    /* Schematic View */
+    .schematic-container { flex: 1; display: flex; justify-content: center; align-items: center; padding: 20px; }
+    /* Multi-Agent View */
+    .agent-grid { flex: 1; padding: 24px; display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 16px; overflow-y: auto; }
+    .agent-card { background: #1e293b; border: 1px solid #334155; border-radius: 8px; padding: 16px; }
+    .agent-card h3 { font-size: 1rem; color: #38bdf8; margin-bottom: 6px; display: flex; justify-content: space-between; align-items: center; }
+    .agent-risk { font-size: 0.7rem; padding: 2px 6px; border-radius: 4px; }
+    .risk-high { background: #ef4444; color: white; }
+    .risk-med { background: #f59e0b; color: white; }
+    .risk-low { background: #10b981; color: white; }
   </style>
 </head>
 <body>
   <header>
-    <h1>🛢️ Wellbore Knowledge Graph <span class="badge">GraphRAG v0.1.0</span></h1>
-    <div style="font-size: 0.85rem; color: #94a3b8;">Status: <span style="color: #4ade80;">Operational</span></div>
+    <h1>🛢️ Wellbore Knowledge Graph <span class="badge">GraphRAG & Subsurface AI</span></h1>
+    <div class="nav-tabs">
+      <button class="tab-btn active" onclick="switchTab('graphView', this)">Knowledge Graph</button>
+      <button class="tab-btn" onclick="switchTab('schematicView', this)">Wellbore Schematic</button>
+      <button class="tab-btn" onclick="switchTab('agentView', this)">Multi-Agent Panel</button>
+      <button class="tab-btn" onclick="switchTab('casingView', this)">Casing Integrity (MASP)</button>
+    </div>
+    <div style="font-size: 0.85rem; color: #94a3b8;">Status: <span style="color: #4ade80;">Online</span></div>
   </header>
+
   <div class="main-container">
-    <div id="cy"></div>
+    <!-- View 1: Knowledge Graph -->
+    <div id="graphView" class="view-content active">
+      <div id="cy"></div>
+    </div>
+
+    <!-- View 2: Wellbore Schematic -->
+    <div id="schematicView" class="view-content">
+      <div class="schematic-container" id="schematicTarget">
+        <div style="color: #64748b;">Loading 2D Casing & Trajectory Schematic...</div>
+      </div>
+    </div>
+
+    <!-- View 3: Multi-Agent Panel -->
+    <div id="agentView" class="view-content">
+      <div class="agent-grid" id="agentGridTarget">
+        <div class="agent-card">
+          <h3>Lead Superintendent <span class="agent-risk risk-low">ACTIVE</span></h3>
+          <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">Role: Operational sequence coordinator & task triage.</p>
+          <div style="margin-top: 10px; font-size: 0.85rem;">Ready to direct subsurface engineering inquiries.</div>
+        </div>
+        <div class="agent-card">
+          <h3>Geomechanics Specialist <span class="agent-risk risk-med">ACTIVE</span></h3>
+          <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">Role: Lithology, pore pressure gradient & sloughing shale.</p>
+          <div style="margin-top: 10px; font-size: 0.85rem;">Monitors Draupne, Norphlet, and Eagle Ford intervals.</div>
+        </div>
+        <div class="agent-card">
+          <h3>Equipment Reliability <span class="agent-risk risk-high">ACTIVE</span></h3>
+          <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">Role: Asset serial records, thermal ratings & BHA fatigue.</p>
+          <div style="margin-top: 10px; font-size: 0.85rem;">Tracking BOP-HYD-5000-08, MM-775-A1, and MWD-TENSOR-882.</div>
+        </div>
+        <div class="agent-card">
+          <h3>Well Control Auditor <span class="agent-risk risk-low">COMPLIANT</span></h3>
+          <p style="font-size: 0.8rem; color: #94a3b8; margin-top: 4px;">Role: API RP 53 / NORSOK D-010 Two-Barrier enforcement.</p>
+          <div style="margin-top: 10px; font-size: 0.85rem;">Auditing primary hydrostatic & secondary mechanical barriers.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- View 4: Casing & MASP Calculator -->
+    <div id="casingView" class="view-content" style="padding: 24px; flex-direction: column;">
+      <h2 style="font-size: 1.1rem; color: #38bdf8; margin-bottom: 12px;">Casing Mechanical Stress & MASP Verification</h2>
+      <div style="display: flex; gap: 16px; margin-bottom: 16px;">
+        <button class="tab-btn active" onclick="runCasingAudit('CSG-958-L80')">Evaluate CSG-958-L80 (9-5/8")</button>
+        <button class="tab-btn active" onclick="runCasingAudit('CSG-700-Q125')">Evaluate CSG-700-Q125 (7")</button>
+      </div>
+      <div id="casingResultTarget" class="node-card" style="max-width: 700px;">
+        Click an evaluation button above to execute downhole burst, collapse, MASP, and kick tolerance audit.
+      </div>
+    </div>
+
+    <!-- Persistent Engineering Sidebar -->
     <div class="sidebar">
       <div class="panel">
         <h2>Ontology Legend</h2>
@@ -418,16 +588,108 @@ async def get_dashboard():
       <div class="panel query-box">
         <h2>Ask Engineering Query</h2>
         <textarea id="queryInput" placeholder="e.g. What SOPs mitigate drillstring pack-off and BOP ram leaks?"></textarea>
-        <button onclick="runQuery()">Run GraphRAG Query</button>
+        <button onclick="runQuery()">Run Grounded GraphRAG</button>
+        <button onclick="runMultiAgent()" style="background: #8b5cf6; margin-top: 6px;">Consult Multi-Agent Committee</button>
       </div>
       <div class="results-area" id="resultsArea">
-        <div style="color: #64748b; text-align: center; margin-top: 40px;">
+        <div style="color: #64748b; text-align: center; margin-top: 30px;">
           Click any graph node to inspect properties or submit an engineering query.
         </div>
       </div>
     </div>
   </div>
+
   <script>
+    function switchTab(viewId, btn) {
+      document.querySelectorAll('.view-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+      btn.classList.add('active');
+      if (viewId === 'schematicView') loadSchematic();
+    }
+
+    async function loadSchematic() {
+      try {
+        const resp = await fetch('/api/v1/wellbore/Well%20104-B/schematic');
+        const data = await resp.json();
+        document.getElementById('schematicTarget').innerHTML = data.svg_schematic;
+      } catch(e) {
+        document.getElementById('schematicTarget').innerHTML = '<div style="color:#ef4444">Failed loading schematic.</div>';
+      }
+    }
+
+    async function runCasingAudit(tag) {
+      const resTarget = document.getElementById('casingResultTarget');
+      resTarget.innerHTML = '<div style="color:#38bdf8;">Evaluating downhole geomechanical stresses & API burst limits...</div>';
+      try {
+        const resp = await fetch('/api/v1/engineering/casing-check', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({casing_serial_or_tag: tag, shoe_depth_tvd_ft: 12500, target_formation_ppg: 14.8, mud_weight_ppg: 15.2})
+        });
+        const d = await resp.json();
+        resTarget.innerHTML = `
+          <h3>[${d.casing_tag}] ${d.grade} (${d.outer_diameter_in}") - Status: ${d.overall_integrity_status}</h3>
+          <p style="margin-top: 8px;"><strong>MASP (Max Anticipated Surface Pressure):</strong> ${d.maximum_anticipated_surface_pressure_masp_psi} psi</p>
+          <p><strong>Burst Rating:</strong> ${d.burst_rating_psi} psi | <strong>Safety Factor:</strong> ${d.burst_safety_factor} (${d.burst_status})</p>
+          <p><strong>Collapse Rating:</strong> ${d.collapse_rating_psi} psi | <strong>Safety Factor:</strong> ${d.collapse_safety_factor} (${d.collapse_status})</p>
+          <p><strong>Maximum Allowable Kick Volume:</strong> ${d.kick_tolerance_bbl} bbl</p>
+          <div style="margin-top: 10px; padding: 8px; background: #1e293b; border-radius: 4px; font-size: 0.85rem; color: #38bdf8;">
+            ${d.recommendation}
+          </div>
+        `;
+      } catch(e) {
+        resTarget.innerHTML = '<div style="color:#ef4444">Error calculating casing margins.</div>';
+      }
+    }
+
+    async function runMultiAgent() {
+      const q = document.getElementById('queryInput').value || 'What SOPs mitigate drillstring pack-off and BOP ram leaks?';
+      const resArea = document.getElementById('resultsArea');
+      resArea.innerHTML = '<div style="color: #a855f7;">Consulting 4 autonomous drilling specialists (Superintendent, Geomechanics, Reliability, Well Control)...</div>';
+      try {
+        const resp = await fetch('/api/v1/query/multi-agent', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({inquiry: q, well_name: 'Well 104-B'})
+        });
+        const data = await resp.json();
+        resArea.innerHTML = `
+          <div class="node-card" style="border-color: #8b5cf6;">
+            <h3 style="color:#c084fc;">Committee Consensus: ${data.operational_classification}</h3>
+            <p style="font-size: 0.75rem; color: #4ade80; margin-top: 4px;">Barrier Status: ${data.two_barrier_compliance_status}</p>
+            <div style="margin-top: 8px; font-size: 0.82rem; white-space: pre-wrap;">${data.final_advisory}</div>
+          </div>
+        `;
+      } catch(e) {
+        resArea.innerHTML = '<div style="color:#ef4444;">Multi-agent consultation error.</div>';
+      }
+    }
+
+    async function runQuery() {
+      const q = document.getElementById('queryInput').value;
+      if (!q) return;
+      const resArea = document.getElementById('resultsArea');
+      resArea.innerHTML = '<div style="color: #38bdf8;">Retrieving vector embeddings & traversing graph...</div>';
+      try {
+        const resp = await fetch('/api/v1/query/hybrid', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({question: q, top_k_chunks: 3, graph_hops: 2})
+        });
+        const data = await resp.json();
+        resArea.innerHTML = `
+          <div class="node-card">
+            <h3 style="color:#4ade80;">Confidence Score: ${(data.confidence_score * 100).toFixed(1)}%</h3>
+            <div style="margin-top: 8px; white-space: pre-wrap;">${data.answer}</div>
+            <div style="margin-top: 12px; font-size: 0.75rem; color: #94a3b8;">Sources: ${data.sources_consulted.join(', ')}</div>
+          </div>
+        `;
+      } catch(e) {
+        resArea.innerHTML = '<div style="color:#ef4444;">Query failed: ' + e + '</div>';
+      }
+    }
+
     async function initGraph() {
       try {
         const res = await fetch('/api/v1/graph/visual');
@@ -496,32 +758,9 @@ async def get_dashboard():
       }
     }
 
-    async function runQuery() {
-      const q = document.getElementById('queryInput').value;
-      if (!q) return;
-      const resArea = document.getElementById('resultsArea');
-      resArea.innerHTML = '<div style="color: #38bdf8;">Retrieving vector embeddings & traversing graph...</div>';
-      try {
-        const resp = await fetch('/api/v1/query/hybrid', {
-          method: 'POST',
-          headers: {'Content-Type': 'application/json'},
-          body: JSON.stringify({question: q, top_k_chunks: 3, graph_hops: 2})
-        });
-        const data = await resp.json();
-        resArea.innerHTML = `
-          <div class="node-card">
-            <h3 style="color:#4ade80;">Confidence Score: ${(data.confidence_score * 100).toFixed(1)}%</h3>
-            <div style="margin-top: 8px; white-space: pre-wrap;">${data.answer}</div>
-            <div style="margin-top: 12px; font-size: 0.75rem; color: #94a3b8;">Sources: ${data.sources_consulted.join(', ')}</div>
-          </div>
-        `;
-      } catch(e) {
-        resArea.innerHTML = '<div style="color:#ef4444;">Query failed: ' + e + '</div>';
-      }
-    }
-
     window.onload = initGraph;
   </script>
 </body>
 </html>"""
+    return HTMLResponse(content=html_content)
     return HTMLResponse(content=html_content)
