@@ -174,6 +174,14 @@ classDiagram
 - **Interactive Visual Subgraph Explorer**: Web console built with Cytoscape.js available at `/api/v1/dashboard`.
 - **Server-Sent Events (SSE) Streaming**: Token-by-token streaming with live graph traversal discovery notifications (`/api/v1/query/stream`).
 - **CWLS LAS 2.0 & DDR Timelines**: Ingestion for wireline/LWD logs and chronological daily drilling report chains (`NEXT_REPORT`).
+- **Casing Mechanics & MASP Engine**: Calculates downhole burst, collapse, and Maximum Anticipated Surface Pressure (MASP) safety factors according to API Spec 5C3.
+- **Automated 5-Whys RCFA Generator**: Traces causal lineages backwards from incidents to synthesize formal IADC post-mortem reports.
+- **Telemetry Stream & Precursor Watchdog**: Live sliding window monitor alerting on pack-off, kick, and drilling break precursors before catastrophic stuck pipe occurs.
+- **Autonomous Multi-Agent Drilling Committee**: Four-specialist panel (Superintendent, Geomechanics, Reliability, Well Control Auditor) formulating consensus operational directives.
+- **Downhole Hydraulics & ECD Simulator**: Bingham-Plastic rheology engine computing circulating friction, ECD, and tripping surge/swab pressure margins.
+- **3D Offset-Well Anti-Collision Scanner**: Minimum Curvature 3D path solver evaluating ISCWSA Separation Factors ($SF$) to prevent multi-well collision hazards.
+- **Drillstring Vibration Dysfunction Classifier**: Identifies Stick-Slip Severity Index (SSSI %), backward bit whirl, and axial bit bounce, mapping risks to BHA asset fatigue.
+- **Energistics WITSML 1.4.1.1 XML Exporter**: Generates standard directional trajectory XML documents for commercial rig data aggregators.
 
 ---
 
