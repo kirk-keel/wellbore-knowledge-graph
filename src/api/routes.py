@@ -36,6 +36,10 @@ from src.retrieval.rcfa_generator import RCFAGenerator, RCFARequest, RCFAReport
 from src.ingestion.telemetry_stream import TelemetryWatchdog, TelemetryFrame, PrecursorAlert
 from src.retrieval.multi_agent import MultiAgentDrillingPanel, MultiAgentAdvisoryReport
 from src.retrieval.wellbore_schematic import WellboreSchematicGenerator, WellboreSchematicData
+from src.retrieval.hydraulics_engine import HydraulicsEngine, HydraulicsRequest, HydraulicsReport
+from src.retrieval.anti_collision import AntiCollisionScanner, AntiCollisionReport, SurveyStation
+from src.retrieval.vibration_classifier import VibrationClassifier, VibrationDataPacket, VibrationClassificationReport
+from src.ingestion.witsml_exporter import WITSML141Exporter
 
 logger = logging.getLogger(__name__)
 
@@ -53,6 +57,10 @@ rcfa_generator = RCFAGenerator(graph_client=neo4j_client, pipeline=ingestion_pip
 telemetry_watchdog = TelemetryWatchdog(pipeline=ingestion_pipeline)
 multi_agent_panel = MultiAgentDrillingPanel(qa_engine=qa_engine, retriever=hybrid_retriever)
 schematic_generator = WellboreSchematicGenerator()
+hydraulics_engine = HydraulicsEngine()
+anti_collision_scanner = AntiCollisionScanner()
+vibration_classifier = VibrationClassifier()
+witsml_exporter = WITSML141Exporter()
 
 
 @router.get("/health", summary="Service health status")
@@ -460,6 +468,65 @@ async def get_wellbore_schematic_svg(well_name: str):
         return Response(content=data.svg_schematic, media_type="image/svg+xml")
     except Exception as e:
         logger.error("Error generating SVG schematic: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/engineering/hydraulics-ecd", response_model=HydraulicsReport, summary="Calculate Annular Hydraulics & Surge/Swab")
+async def evaluate_hydraulics(payload: HydraulicsRequest):
+    """Calculates Bingham Plastic annular friction, ECD, and surge/swab pressure margins."""
+    try:
+        return hydraulics_engine.simulate(payload)
+    except Exception as e:
+        logger.error("Error evaluating hydraulics: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/engineering/anti-collision", response_model=AntiCollisionReport, summary="Scan 3D Trajectory Anti-Collision")
+async def scan_anti_collision(payload: Dict[str, Any]):
+    """
+    Computes 3D Minimum Curvature path and evaluates ISCWSA Separation Factor
+    against offset wells in the knowledge graph.
+    """
+    active_well = payload.get("active_well_name", "Well 104-B")
+    stations_raw = payload.get("stations", [])
+    stations = [SurveyStation(**s) for s in stations_raw] if stations_raw else [
+        SurveyStation(measured_depth_md_ft=0.0, inclination_deg=0.0, azimuth_deg=45.0),
+        SurveyStation(measured_depth_md_ft=3800.0, inclination_deg=2.0, azimuth_deg=45.0),
+        SurveyStation(measured_depth_md_ft=8200.0, inclination_deg=18.0, azimuth_deg=50.0),
+        SurveyStation(measured_depth_md_ft=12500.0, inclination_deg=28.5, azimuth_deg=52.0),
+    ]
+    try:
+        return anti_collision_scanner.scan_anti_collision(active_well=active_well, active_stations=stations)
+    except Exception as e:
+        logger.error("Error in anti-collision scan: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.post("/engineering/vibration-classify", response_model=VibrationClassificationReport, summary="Classify Drillstring Dynamic Dysfunctions")
+async def classify_vibrations(payload: VibrationDataPacket):
+    """
+    Classifies downhole drilling dysfunctions: Stick-Slip (SSSI %), Bit Bounce,
+    and Backward Whirl, mapping threats to BHA components in the Knowledge Graph.
+    """
+    try:
+        return vibration_classifier.classify(payload)
+    except Exception as e:
+        logger.error("Error classifying vibrations: %s", e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@router.get("/export/witsml/{well_name}", summary="Export Trajectory to Energistics WITSML 1.4.1.1 XML")
+async def export_witsml_trajectory(well_name: str, wellbore: str = "Wellbore-1"):
+    """Generates official WITSML 1.4.1.1 XML document for commercial rig data aggregators."""
+    try:
+        xml_content = witsml_exporter.export_trajectory_witsml(
+            well_name=well_name,
+            wellbore_name=wellbore,
+            survey_name=f"{well_name}_Definitive_MWD",
+        )
+        return Response(content=xml_content, media_type="application/xml")
+    except Exception as e:
+        logger.error("Error exporting WITSML: %s", e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 

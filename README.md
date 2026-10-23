@@ -367,6 +367,42 @@ Access the interactive web visualizer in your browser at:
 - `GET /api/v1/wellbore/{well_name}/schematic` (JSON Architecture & SVG)
 - `GET /api/v1/wellbore/{well_name}/schematic.svg` (Direct Vector SVG)
 
+### 14. Downhole Hydraulics & Surge/Swab (ECD)
+`POST /api/v1/engineering/hydraulics-ecd`
+```json
+{
+  "well_name": "Well 104-B",
+  "depth_tvd_ft": 10500.0,
+  "mud_weight_ppg": 12.2,
+  "flow_rate_gpm": 650.0,
+  "tripping_speed_fpm": 90.0,
+  "formation_pore_pressure_ppg": 11.5,
+  "formation_fracture_gradient_ppg": 14.8
+}
+```
+
+### 15. 3D Offset-Well Anti-Collision Scanner
+`POST /api/v1/engineering/anti-collision`
+```json
+{
+  "active_well_name": "Well 104-B"
+}
+```
+
+### 16. Drillstring Vibration Dysfunction Classifier
+`POST /api/v1/engineering/vibration-classify`
+```json
+{
+  "surface_rpm_mean": 110.0,
+  "rpm_max": 230.0,
+  "rpm_min": 5.0,
+  "wob_mean_klb": 25.0
+}
+```
+
+### 17. Energistics WITSML 1.4.1.1 XML Exporter
+`GET /api/v1/export/witsml/{well_name}` (Returns XML payload)
+
 ---
 
 ## 6. Running Tests
