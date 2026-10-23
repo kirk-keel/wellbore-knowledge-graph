@@ -1,0 +1,48 @@
+services:
+  neo4j:
+    image: neo4j:5.20.0-community
+    container_name: wellbore-neo4j-dev
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      - NEO4J_AUTH=neo4j/wellborepassword123
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - neo4j_dev_data:/data
+    restart: unless-stopped
+
+  ollama:
+    image: ollama/ollama:latest
+    container_name: wellbore-ollama-dev
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_dev_models:/root/.ollama
+    restart: unless-stopped
+
+  api-dev:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: wellbore-api-dev
+    ports:
+      - "8000:8000"
+    volumes:
+      - ../src:/app/src
+      - ../configs:/app/configs
+      - ../data:/app/data
+      - ../tests:/app/tests
+    environment:
+      - NEO4J_URI=bolt://neo4j:7687
+      - NEO4J_USER=neo4j
+      - NEO4J_PASSWORD=wellborepassword123
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - DEBUG=true
+      - ENVIRONMENT=development
+    command: ["uvicorn", "src.api.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+    restart: unless-stopped
+
+volumes:
+  neo4j_dev_data:
+  ollama_dev_models:

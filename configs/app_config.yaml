@@ -1,0 +1,88 @@
+# ==============================================================================
+# Wellbore Knowledge Graph - Application & Domain Physics Configuration
+# ==============================================================================
+
+application:
+  name: "Wellbore Engineering GraphRAG"
+  version: "0.1.0"
+  environment: "development"
+  debug: false
+
+# Graph Database Settings
+neo4j:
+  uri: "bolt://localhost:7687"
+  database: "neo4j"
+  max_connection_pool_size: 50
+  vector_index:
+    name: "chunk_vector_index"
+    dimension: 384
+    similarity_metric: "cosine"
+
+# LLM & Embedding Inference
+inference:
+  ollama_url: "http://localhost:11434"
+  llm_model: "llama3.2:latest"
+  embed_model: "nomic-embed-text"
+  fallback_embed_provider: "deterministic"
+  allow_mock_fallback: true
+
+# Chunking & Parsing
+chunking:
+  chunk_size: 1000
+  chunk_overlap: 200
+  allowed_extensions:
+    - ".pdf"
+    - ".txt"
+    - ".md"
+    - ".las"
+
+# Retrieval & Ranking Parameters
+retrieval:
+  default_top_k: 5
+  default_graph_hops: 2
+  max_graph_paths: 25
+  min_similarity_score: 0.10
+  reciprocal_rank_k: 60
+  weights:
+    vector_rank: 0.60
+    graph_rank: 0.40
+
+# Engineering Physics & Safety Thresholds
+physics:
+  # Casing Design Safety Factors (API Spec 5C3)
+  casing_safety_factors:
+    burst_min_sf: 1.10
+    collapse_min_sf: 1.00
+    tension_min_sf: 1.60
+
+  # Drilling Hydraulics & ECD Defaults
+  hydraulics:
+    default_mud_density_ppg: 10.5
+    default_pv_cp: 20.0
+    default_yp_lbf_100sqft: 15.0
+    default_flow_rate_gpm: 550.0
+    rheology_model: "bingham_plastic"
+
+  # Anti-Collision Rules (ISCWSA Standards)
+  anti_collision:
+    warning_separation_factor: 1.50
+    critical_separation_factor: 1.00
+    default_position_uncertainty_ft: 15.0
+
+  # Drillstring Vibration Dysfunction Thresholds
+  vibrations:
+    stick_slip_warning_pct: 50.0
+    stick_slip_critical_pct: 100.0
+    bit_bounce_wob_variance_threshold: 4000.0
+    whirl_lateral_accel_g: 1.50
+
+  # Well Integrity Safety Guardrails (API RP 53 / NORSOK D-010)
+  integrity:
+    two_barrier_rule_required: true
+    min_active_barriers: 2
+    critical_barrier_types:
+      - "casing"
+      - "cement"
+      - "bop_ram"
+      - "annular_bop"
+      - "downhole_safety_valve"

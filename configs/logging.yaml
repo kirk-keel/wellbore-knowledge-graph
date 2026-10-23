@@ -1,0 +1,47 @@
+# Logging Configuration
+version: 1
+disable_existing_loggers: false
+
+formatters:
+  standard:
+    format: "%(asctime)s [%(levelname)s] [%(name)s:%(lineno)d] - %(message)s"
+    datefmt: "%Y-%m-%d %H:%M:%S"
+  json:
+    format: '{"time": "%(asctime)s", "level": "%(levelname)s", "logger": "%(name)s", "line": %(lineno)d, "message": "%(message)s"}'
+    datefmt: "%Y-%m-%d %H:%M:%S"
+
+handlers:
+  console:
+    class: logging.StreamHandler
+    level: INFO
+    formatter: standard
+    stream: ext://sys.stdout
+
+  file:
+    class: logging.handlers.RotatingFileHandler
+    level: DEBUG
+    formatter: standard
+    filename: logs/app.log
+    maxBytes: 10485760  # 10 MB
+    backupCount: 5
+    encoding: utf8
+
+loggers:
+  src:
+    level: INFO
+    handlers: [console]
+    propagate: false
+
+  uvicorn:
+    level: INFO
+    handlers: [console]
+    propagate: false
+
+  neo4j:
+    level: WARNING
+    handlers: [console]
+    propagate: false
+
+root:
+  level: INFO
+  handlers: [console]

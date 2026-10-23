@@ -3,11 +3,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
-# Environments
-.venv/
-env/
-venv/
-ENV/
+# C extensions
+*.so
 
 # Distribution / packaging
 .Python
@@ -23,19 +20,68 @@ parts/
 sdist/
 var/
 wheels/
+share/python-wheels/
 *.egg-info/
 .installed.cfg
 *.egg
+MANIFEST
 
-# Testing & Coverage
+# Virtual Environments
+.venv/
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Testing, Coverage & Linters
 .pytest_cache/
 .coverage
+.coverage.*
+coverage.xml
 htmlcov/
+.hypothesis/
+.tox/
+.nox/
+.mypy_cache/
+.ruff_cache/
 
-# Local Environment Variables
+# IDEs & Editors
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+*.sublime-project
+*.sublime-workspace
+
+# Operating System Files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+Desktop.ini
+
+# Environment Variables & Secrets
 .env
+.env.local
+.env.*.local
+*.pem
+*.key
+*.cert
 
-# Neo4j & Ollama volume dumps
+# Neo4j & Ollama Volume Dumps and Local Data
 data/neo4j/
 data/ollama/
+*.db
+*.sqlite3
+
+# Logs & Temporary Files
 logs/
+*.log
+temp/
+scratch/
+tmp/

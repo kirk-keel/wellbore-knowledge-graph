@@ -1,422 +1,306 @@
 # Wellbore Knowledge Graph (GraphRAG)
 
-An advanced Graph Retrieval-Augmented Generation (GraphRAG) system engineered for subsurface drilling engineering, IADC standards, well programs, equipment integrity manuals, and historical incident post-mortems.
+[![Python 3.10+](https://img.shields.io/badge/python-3.10%20%7C%203.11%20%7C%203.12%20%7C%203.14-blue.svg)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.115+-009688.svg?logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com)
+[![Neo4j](https://img.shields.io/badge/Neo4j-5.20+-008CC1.svg?logo=neo4j&logoColor=white)](https://neo4j.com)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED.svg?logo=docker&logoColor=white)](https://www.docker.com)
+[![Tests Passing](https://img.shields.io/badge/tests-45%2F45%20passing-brightgreen.svg)](https://pytest.org)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 
-By synthesizing **dense vector search** over technical documents with **multi-hop semantic graph traversals** across physical assets, failure modes, lithological horizons, and standard operating procedures (SOPs), this platform delivers grounded engineering answers without hallucinations.
+An industrial-grade **Graph Retrieval-Augmented Generation (GraphRAG)** and subsurface drilling engineering intelligence platform. Designed for petroleum drilling engineers, well integrity auditors, and geoscientists to extract actionable operational intelligence from drilling manuals, IADC standards, Daily Drilling Reports (DDR), equipment integrity certifications, and historical incident logs without hallucinations.
 
 ---
 
 ## 1. System Architecture
 
+### ASCII System Architecture
+
+```
+====================================================================================================
+                             WELLBORE ENGINEERING GRAPHRAG PLATFORM
+====================================================================================================
+
+   [ RAW DATA ASSETS ]
+   ├── Technical PDFs / Manuals (IADC, API RP 53, NORSOK D-010)
+   ├── CWLS LAS 2.0 Well Logs (GR, RES, CALI, ROP, WOB)
+   ├── Chronological Daily Drilling Reports (DDR Timeline Chains)
+   └── Real-Time Rig Surface Telemetry (SPP, Torque, Pit Gain, Hookload)
+            │
+            ▼
+   [ INGESTION SUBSYSTEM ]
+   ├── Hierarchical Document & Section Boundary Chunker
+   ├── Domain Entity & Relation Extractor (Serial Nos, Lithology, SOPs)
+   └── Embedding Provider (Nomic-Embed-Text / Deterministic Hash Fallback)
+            │
+            ▼
+   [ KNOWLEDGE GRAPH & VECTOR STORE (Neo4j 5.20) ]
+   ├── High-Dimensional Vector Index (384-dim Cosine Similarity)
+   ├── Relational Domain Ontology (Wells, BHA, Formations, Equipment, SOPs)
+   ├── Sequential DDR Timeline Chains (:DDR)-[:NEXT_REPORT]->(:DDR)
+   └── Global Community Risk Clusters (Hierarchical Graph Partitioning)
+            │
+            ▼
+   [ HYBRID RETRIEVAL & GROUNDING ENGINE ]
+   ├── Dense Vector Semantic Search (Top-K Chunks)
+   ├── Multi-Hop Relational Cypher Traversal (1-3 Hops)
+   ├── Reciprocal Rank Fusion (RRF) Reranker (w_v=0.6, w_g=0.4, k=60)
+   ├── AST Read-Only Safe Cypher Guardrail (Rejects Data Mutations)
+   └── Grounding QA Engine (Lexical & Semantic Anti-Hallucination Scorer)
+            │
+            ▼
+   [ ENGINEERING SIMULATORS & SAFETY GUARDRAILS ]
+   ├── Two-Barrier Rule Validator (API RP 53 / NORSOK D-010 Barrier Verification)
+   ├── Bingham-Plastic Hydraulics & ECD Simulator (Surge/Swab Pressure Margins)
+   ├── 3D Anti-Collision Scanner (ISCWSA Minimum Curvature & Separation Factor)
+   ├── Drillstring Vibration Classifier (SSSI% Stick-Slip, Bit Bounce, Whirl)
+   ├── Casing Integrity & MASP Calculator (API Spec 5C3 Burst, Collapse, Tension)
+   ├── Automated 5-Whys RCFA Incident Post-Mortem Generator
+   ├── Real-Time Telemetry Watchdog (Pack-Off, Kick, & Drilling Break Precursors)
+   └── Multi-Agent Collaborative Drilling Advisory Panel (Consensus Directives)
+            │
+            ▼
+   [ PRESENTATION & DELIVERY LAYER (FastAPI) ]
+   ├── 17 REST API Microservice Endpoints
+   ├── Server-Sent Events (SSE) Streaming Retrieval (/api/v1/query/stream)
+   ├── Interactive Cytoscape.js Visual Knowledge Graph Dashboard (/api/v1/dashboard)
+   ├── 2D Casing Architecture SVG Visualizer (/api/v1/wellbore/{name}/schematic.svg)
+   └── Energistics WITSML 1.4.1.1 Standard XML Exporter (/api/v1/export/witsml/{name})
+====================================================================================================
+```
+
+### Mermaid Architecture Workflow
+
 ```mermaid
 flowchart TD
-    subgraph Ingestion ["1. Parsing & Extraction Pipeline"]
-        PDF["Engineering PDFs & Manuals"] --> Parser["TechnicalDocumentParser<br/>(LangChain & PyPDF)"]
-        Parser --> Chunker["WellboreDomainChunker<br/>(Semantic & Operational Boundaries)"]
-        Chunker --> Extractor["WellboreEntityExtractor<br/>(LangChain Structured LLM + Domain Rules)"]
-        Extractor --> Embedder["EmbeddingProvider<br/>(Ollama / Deterministic Fallback)"]
+    subgraph Ingestion ["1. Data Ingestion & Extraction"]
+        PDF["Engineering PDFs & SOPs"] --> Parser["Document Parser & Structure Extractor"]
+        LAS["CWLS LAS 2.0 Well Logs"] --> LASParser["LAS Curve & Anomaly Parser"]
+        DDR["Daily Drilling Reports"] --> DDRBuilder["DDR Timeline Sequence Builder"]
+        Parser & LASParser & DDRBuilder --> Chunker["Domain-Aware Markdown Chunker"]
+        Chunker --> Extractor["Structured Entity & Relation Extractor"]
+        Extractor --> Embedder["Embedding Provider (Nomic / Fallback)"]
     end
 
     subgraph Storage ["2. Neo4j Knowledge Graph & Vector Store"]
-        Embedder --> VIndex[("Neo4j Vector Index<br/>(chunk_vector_index: 384-dim Cosine)")]
-        Extractor --> GraphNodes[("Neo4j Graph Database<br/>Well | Equipment | Formation<br/>FailureMode | SOP | Incident")]
+        Embedder --> VIndex[("Neo4j Vector Index<br/>384-dim Cosine Index")]
+        Extractor --> GraphNodes[("Neo4j Graph Database<br/>Well | BHA | Equipment | Formation<br/>FailureMode | SOP | Incident | DDR")]
         VIndex -.->|EXTRACTED_FROM| GraphNodes
         VIndex -.->|MENTIONS| GraphNodes
     end
 
-    subgraph Engine ["3. Hybrid Retrieval & QA Engine"]
-        UserQ["User Engineering Query"] --> VSearch["Vector Search<br/>(Dense Semantic Similarity)"]
-        VSearch --> SeedChunks["Seed Document Chunks"]
-        SeedChunks --> Traverser["MultiHopGraphTraverser<br/>(Neighborhood & 2-Hop Graph Expansion)"]
-        Traverser --> Subgraph["Semantic Path & Entity Subgraph"]
-        SeedChunks --> Fusion["Hybrid Context Fusion"]
-        Subgraph --> Fusion
-        Fusion --> QAEngine["WellboreQAEngine<br/>(Anti-Hallucination Verification)"]
-        QAEngine --> Response["Grounded Engineering Response<br/>+ Graph Traversal Citations"]
+    subgraph Retrieval ["3. Hybrid Retrieval & Grounding"]
+        Query["Engineering Query"] --> VSearch["Dense Vector Search"]
+        Query --> Traversal["Multi-Hop Cypher Traversal"]
+        Query --> Text2Cypher["Text-to-Cypher (Safe AST Guardrail)"]
+        VSearch & Traversal --> RRF["Reciprocal Rank Fusion (RRF) Reranker"]
+        RRF --> Safety["Two-Barrier Safety Check (API RP 53)"]
+        Safety --> Grounding["Anti-Hallucination QA Engine"]
+    end
+
+    subgraph Physics ["4. Physics Engines & Multi-Agent Committee"]
+        Hydraulics["Bingham-Plastic ECD & Surge/Swab"]
+        AntiCollision["3D ISCWSA Anti-Collision Scanner"]
+        Vibrations["Drillstring Vibration Classifier (SSSI%)"]
+        Casing["Casing Mechanics & MASP (API 5C3)"]
+        RCFA["5-Whys RCFA Incident Generator"]
+        Agents["Autonomous Multi-Agent Committee"]
+    end
+
+    subgraph Delivery ["5. Presentation & Interoperability Layer"]
+        Grounding & Physics --> API["FastAPI Application (17 REST Endpoints)"]
+        API --> Dashboard["Cytoscape.js Web Visualizer"]
+        API --> SSE["SSE Query Streaming"]
+        API --> WITSML["Energistics WITSML 1.4.1.1 XML"]
+        API --> SVG["Wellbore Schematic SVG Generator"]
     end
 ```
 
 ---
 
-## 2. Graph Database Schema & Ontology
+## 2. Repository Layout
 
-The graph combines unstructured textual evidence with formal domain ontology:
-
-```mermaid
-classDiagram
-    direction LR
-
-    class Document {
-        string id
-        string title
-        string source
-        string category
-        datetime ingested_at
-    }
-
-    class DocumentChunk {
-        string id
-        int chunk_index
-        int page
-        string text
-        float[] embedding
-        string section_title
-    }
-
-    class Well {
-        string name
-        string api_number
-        string field
-        float water_depth_ft
-        float total_depth_ft
-    }
-
-    class Equipment {
-        string serial_number
-        string equipment_type
-        string manufacturer
-        string model
-        float working_pressure_psi
-    }
-
-    class Formation {
-        string name
-        string lithology
-        float top_depth_ft
-        float bottom_depth_ft
-        float pore_pressure_ppg
-        string[] hazards
-    }
-
-    class FailureMode {
-        string code
-        string failure_type
-        string severity
-        string description
-        string root_cause
-        string[] symptoms
-    }
-
-    class SOP {
-        string sop_id
-        string title
-        string category
-        string standard_reference
-        string[] required_barriers
-        string[] steps
-    }
-
-    class Incident {
-        string incident_id
-        string well_name
-        string date
-        float npt_hours
-        float depth_ft
-        string description
-    }
-
-    class DDR {
-        int report_number
-        string well_name
-        string report_date
-        float current_depth_ft
-        float progress_24hr_ft
-        float npt_hours
-        string operations_summary
-    }
-
-    DocumentChunk --> Document : EXTRACTED_FROM
-    DocumentChunk --> Well : MENTIONS
-    DocumentChunk --> Equipment : MENTIONS
-    DocumentChunk --> Formation : MENTIONS
-    DocumentChunk --> FailureMode : MENTIONS
-    DocumentChunk --> SOP : MENTIONS
-    DocumentChunk --> Incident : MENTIONS
-
-    DDR --> DDR : NEXT_REPORT
-    DDR --> Well : RECORDED_FOR_WELL
-    DDR --> Incident : REPORTED_INCIDENT
-    Well --> Formation : PENETRATES
-    Well --> Equipment : USES_EQUIPMENT
-    Incident --> Well : OCCURRED_IN_WELL
-    Incident --> Equipment : INVOLVED_EQUIPMENT
-    Incident --> FailureMode : EXHIBITED_FAILURE
-    FailureMode --> Formation : OCCURS_IN
-    FailureMode --> SOP : MITIGATED_BY
-    Equipment --> SOP : MAINTAINED_UNDER
+```
+wellbore-knowledge-graph/
+├── configs/                         # Production application & physics configurations
+│   ├── app_config.yaml              # Domain thresholds, rheology models, & safety factors
+│   ├── logging.yaml                 # Structured logging with file & console handlers
+│   └── neo4j.conf                   # Reference Neo4j 5.20 APOC & memory configuration
+├── data/                            # Raw sample technical documents & well logs
+│   └── sample_docs/                 # Sample IADC guidelines, SOPs, and LAS files
+├── docker/                          # Container orchestration definitions
+│   ├── Dockerfile                   # Multi-stage security-hardened containerfile
+│   ├── docker-compose.yml           # Production multi-container composition
+│   ├── docker-compose.dev.yml       # Development stack with hot reload
+│   ├── entrypoint.sh                # Executable readiness-probe initialization script
+│   └── README.md                    # Docker deployment & orchestration guide
+├── docs/                            # Comprehensive technical documentation
+│   ├── architecture.md              # Deep-dive subsystem architecture & equations
+│   ├── api_reference.md             # Complete REST endpoint specifications & payloads
+│   ├── deployment.md                # Production bare-metal, Docker, & Kubernetes guide
+│   ├── domain_glossary.md           # Oil & gas drilling terminology & API standards
+│   └── quickstart.md                # 5-minute onboarding & developer tutorial
+├── scripts/                         # Automation & database seeding scripts
+│   ├── generate_sample_pdf.py       # Generates synthetic subsurface technical manuals
+│   ├── seed_database.py             # Parses, chunks, embeds, & seeds Neo4j database
+│   └── test_query.py                # Standalone retrieval benchmark script
+├── src/                             # Core application source code
+│   ├── api/                         # FastAPI application & REST endpoint routers
+│   │   ├── main.py                  # Lifespan events, CORS, & app factory
+│   │   └── routes.py                # 17 REST endpoints + SSE stream + Cytoscape dashboard
+│   ├── embeddings/                  # Vector embedding providers (Ollama / Deterministic)
+│   ├── graph/                       # Neo4j client, schema constraints, & Cypher queries
+│   ├── ingestion/                   # Document parsing, chunking, LAS, & DDR timeline
+│   ├── models/                      # Pydantic domain entities & API request/response models
+│   ├── retrieval/                   # Hybrid RRF, Text-to-Cypher, physics simulators, & agents
+│   └── config.py                    # Environment settings loaded via Pydantic
+├── tests/                           # Comprehensive Pytest verification suite (45 tests)
+├── .env.example                     # Environment template with documented parameters
+├── .gitignore                       # Strict repository gitignore
+├── Dockerfile                       # Root container build specification
+├── docker-compose.yml               # Root multi-container orchestration stack
+├── pyproject.toml                   # Hatchling project metadata & build configuration
+└── requirements.txt                 # Pinned project dependencies
 ```
 
 ---
 
-## 3. Core Capabilities
+## 3. Quickstart
 
-### A. Domain-Aware Parsing & Extraction
-- **PDF & Text Ingestion**: Preserves page numbers, table boundaries, and document structure.
-- **Entity Extraction**:
-  - **Equipment Serial Numbers**: `BOP-HYD-5000-08`, `MM-775-A1`, `MWD-TENSOR-882`, `CSG-958-L80`.
-  - **Formation Lithologies**: Depth-tagged horizons (e.g. `Eagle Ford Shale`, `Brent Sandstone`, `Norphlet Formation`) with pore pressure and hazard flags.
-  - **Failure Mechanisms**: `FAIL-PACKOFF`, `FAIL-RAMLEAK`, `FAIL-TWISTOFF`, `FAIL-KICK`, `FAIL-LOSTCIRC`.
-  - **SOPs & Standards**: `IADC-WCC-04`, `API-RP-53`, `SOP-SP-774`, `SOP-SHUTIN-01`.
+### Prerequisites
+- Python 3.10+
+- Git
+- Docker & Docker Compose *(optional for full microservice orchestration)*
 
-### B. Neo4j 5+ Vector & Multi-Hop Traversal
-- **Vector Index**: Neo4j-native vector index (`chunk_vector_index`) using cosine similarity.
-- **Graph Traversal**: Traverses from seed text chunks to mentioned assets, then expands 1 to 2 hops across failure modes, past incident non-productive time (NPT), and mitigating procedures.
+### Option A: Complete Docker Compose Stack
 
-### C. Anti-Hallucination QA Engine & Safety Guardrails
-- **Constraint-Grounded Reasoning**: Answers are generated strictly from verified graph paths and retrieved text excerpts.
-- **Two-Barrier Rule Safety Guardrail**: Automated compliance audit against API RP 53 / NORSOK D-010 standards to guarantee both primary (hydrostatic) and secondary (BOP preventer/shear ram) barrier requirements are validated for well control guidance.
-- **Traceable Attribution**: Output includes exact entity identifiers, parent standard codes, and the explicit Cypher traversal trail.
-- **Reciprocal Rank Fusion (RRF) Reranking**: Merges dense vector proximity with graph topological centrality.
-
-### D. Advanced Analytics & Operations Tools
-- **Text-to-Cypher Agent**: Converts quantitative questions into read-only Cypher queries (e.g. cumulative NPT hours, failure frequencies).
-- **Hierarchical Community Detection**: Clusters formations, wells, and equipment into operational risk communities.
-- **Interactive Visual Subgraph Explorer**: Web console built with Cytoscape.js available at `/api/v1/dashboard`.
-- **Server-Sent Events (SSE) Streaming**: Token-by-token streaming with live graph traversal discovery notifications (`/api/v1/query/stream`).
-- **CWLS LAS 2.0 & DDR Timelines**: Ingestion for wireline/LWD logs and chronological daily drilling report chains (`NEXT_REPORT`).
-- **Casing Mechanics & MASP Engine**: Calculates downhole burst, collapse, and Maximum Anticipated Surface Pressure (MASP) safety factors according to API Spec 5C3.
-- **Automated 5-Whys RCFA Generator**: Traces causal lineages backwards from incidents to synthesize formal IADC post-mortem reports.
-- **Telemetry Stream & Precursor Watchdog**: Live sliding window monitor alerting on pack-off, kick, and drilling break precursors before catastrophic stuck pipe occurs.
-- **Autonomous Multi-Agent Drilling Committee**: Four-specialist panel (Superintendent, Geomechanics, Reliability, Well Control Auditor) formulating consensus operational directives.
-- **Downhole Hydraulics & ECD Simulator**: Bingham-Plastic rheology engine computing circulating friction, ECD, and tripping surge/swab pressure margins.
-- **3D Offset-Well Anti-Collision Scanner**: Minimum Curvature 3D path solver evaluating ISCWSA Separation Factors ($SF$) to prevent multi-well collision hazards.
-- **Drillstring Vibration Dysfunction Classifier**: Identifies Stick-Slip Severity Index (SSSI %), backward bit whirl, and axial bit bounce, mapping risks to BHA asset fatigue.
-- **Energistics WITSML 1.4.1.1 XML Exporter**: Generates standard directional trajectory XML documents for commercial rig data aggregators.
-
----
-
-## 4. Quickstart & Deployment
-
-### Option A: Local Docker Compose (Neo4j + Ollama + API)
-
-Run the full stack with one command:
+Run the complete multi-container stack (Neo4j with APOC, Ollama LLM provider, and FastAPI GraphRAG) with one command:
 
 ```bash
-docker compose up -d
+docker compose up -d --build
 ```
 
-This starts:
-1. **Neo4j 5.20** on `bolt://localhost:7687` (Browser UI: `http://localhost:7474`, User: `neo4j`, Password: `wellborepassword123`)
-2. **Ollama** on `http://localhost:11434`
-3. **FastAPI Query Service** on `http://localhost:8000` (Docs: `http://localhost:8000/docs`)
+1. **Neo4j Browser UI**: [http://localhost:7474](http://localhost:7474) *(User: `neo4j`, Password: `wellborepassword123`)*
+2. **FastAPI Web Service**: [http://localhost:8000](http://localhost:8000)
+3. **Interactive Visual Dashboard**: [http://localhost:8000/api/v1/dashboard](http://localhost:8000/api/v1/dashboard)
+4. **OpenAPI Swagger UI**: [http://localhost:8000/docs](http://localhost:8000/docs)
 
-To pull Ollama models inside the container:
+To pull the instruction and embedding models inside Ollama:
 ```bash
 docker exec -it wellbore-ollama ollama pull llama3.2:latest
 docker exec -it wellbore-ollama ollama pull nomic-embed-text
 ```
 
-### Option B: Local Python Environment
-
-1. **Clone repository & setup virtual environment**:
-   ```bash
-   git clone https://github.com/organization/wellbore-knowledge-graph.git
-   cd wellbore-knowledge-graph
-   python3 -m venv .venv
-   source .venv/bin/activate
-   pip install -r requirements.txt
-   pip install -e .
-   ```
-
-2. **Configure environment**:
-   ```bash
-   cp .env.example .env
-   ```
-
-3. **Seed sample domain documents**:
-   ```bash
-   python3 scripts/seed_database.py
-   ```
-
-4. **Start FastAPI service**:
-   ```bash
-   uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
-   ```
+Seed the database:
+```bash
+docker exec -it wellbore-graphrag-api python scripts/seed_database.py
+```
 
 ---
 
-## 5. API Reference
+### Option B: Local Python Development (Resilient Offline Mode)
 
-Interactive OpenAPI documentation is available at `http://localhost:8000/docs`.
+The application has zero hard external dependencies when running in local development mode—it features built-in in-memory graph buffering and deterministic normalized token embeddings:
 
-### 1. Hybrid GraphRAG Query
-`POST /api/v1/query/hybrid`
+```bash
+# 1. Clone repository
+git clone https://github.com/kirk-keel/wellbore-knowledge-graph.git
+cd wellbore-knowledge-graph
 
-**Request:**
-```json
-{
-  "question": "What SOPs mitigate drillstring pack-off and BOP ram leak failures?",
-  "top_k_chunks": 5,
-  "graph_hops": 2,
-  "min_similarity": 0.30,
-  "include_graph_paths": true
-}
+# 2. Create virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
+
+# 3. Install dependencies
+pip install -r requirements.txt
+
+# 4. Configure environment
+cp .env.example .env
+
+# 5. Generate sample data & seed in-memory graph
+python scripts/generate_sample_pdf.py
+python scripts/seed_database.py
+
+# 6. Start the API server
+uvicorn src.api.main:app --host 0.0.0.0 --port 8000 --reload
 ```
-
-**Response:**
-```json
-{
-  "question": "What SOPs mitigate drillstring pack-off and BOP ram leak failures?",
-  "answer": "### Operational Analysis & Findings\n- Failure Mode [FAIL-PACKOFF]: Mitigated according to standard procedure(s) SOP-SP-774, IADC-WCC-04.\n- Failure Mode [FAIL-RAMLEAK]: Mitigated according to standard procedure(s) API-RP-53, SOP-SHUTIN-01.\n...",
-  "confidence_score": 0.94,
-  "retrieved_chunks": [
-    {
-      "chunk_id": "IADC_Well_Control_Guidelines_Kick_Detection:c0_4c59a3c2",
-      "doc_id": "IADC_Well_Control_Guidelines_Kick_Detection",
-      "page": 1,
-      "text": "Upon detection of any pit gain exceeding 5 bbl...",
-      "similarity_score": 0.892
-    }
-  ],
-  "graph_paths": [
-    {
-      "source_label": "FailureMode",
-      "source_id": "FAIL-PACKOFF",
-      "source_name": "Pack-off",
-      "relation": "MITIGATED_BY",
-      "target_label": "SOP",
-      "target_id": "SOP-SP-774",
-      "target_name": "SOP-SP-774"
-    }
-  ],
-  "entities_cited": [
-    {
-      "entity_type": "FailureMode",
-      "entity_id": "FAIL-PACKOFF",
-      "entity_name": "Pack-off",
-      "relation_to_context": "Connected via MITIGATED_BY to SOP-SP-774"
-    }
-  ],
-  "reasoning_summary": "Grounding verification complete. Consulted 3 document chunks, traversed 6 graph relationships, and cited 4 verified domain entities.",
-  "sources_consulted": ["IADC_Well_Control_Guidelines_Kick_Detection", "SOP_SP_774_Drillstring_Packoff_Remediation"]
-}
-```
-
-### 2. Document Ingestion
-`POST /api/v1/ingest/file` (Multipart form upload: `file`, `category`, `doc_id`)
-
-Supports technical engineering PDFs, daily drilling reports (DDR), well programs, and IADC standards.
-
-### 3. Graph Traversal Inspection
-`POST /api/v1/query/graph`
-
-**Request:**
-```json
-{
-  "entity_type": "Equipment",
-  "entity_id": "BOP-HYD-5000-08",
-  "max_hops": 2
-}
-```
-
-### 4. Graph Statistics
-`GET /api/v1/graph/stats`
-
-### 5. Quantitative Text-to-Cypher Query
-`POST /api/v1/query/cypher`
-```json
-{
-  "question": "What is the total cumulative NPT hours across all wells?"
-}
-```
-
-### 6. Global Risk Communities & Macro Summaries
-- `GET /api/v1/graph/communities`
-- `GET /api/v1/graph/communities/{community_id}/summary`
-
-### 7. Interactive Graph Dashboard & Visualizer
-Access the interactive web visualizer in your browser at:
-`http://localhost:8000/api/v1/dashboard`
-
-### 8. Streaming GraphRAG (SSE)
-`GET /api/v1/query/stream?question=How+to+shut+in+on+a+gas+kick?`
-
-### 9. Casing Integrity & MASP Verification
-`POST /api/v1/engineering/casing-check`
-```json
-{
-  "casing_serial_or_tag": "CSG-958-L80",
-  "shoe_depth_tvd_ft": 12500.0,
-  "target_formation_ppg": 14.8,
-  "mud_weight_ppg": 15.2
-}
-```
-
-### 10. Automated 5-Whys RCFA Post-Mortem Report
-`POST /api/v1/reports/rcfa`
-```json
-{
-  "incident_id": "INC-2024-008",
-  "well_name": "Deepwater Titan Well"
-}
-```
-
-### 11. Real-Time Telemetry Stream & Anomaly Watchdog
-`POST /api/v1/telemetry/stream`
-```json
-{
-  "timestamp_utc": "2024-08-14T10:05:00Z",
-  "depth_ft": 10480.0,
-  "standpipe_pressure_psi": 3550.0,
-  "torque_kft_lb": 28.0
-}
-```
-
-### 12. Multi-Agent Drilling Advisory Panel
-`POST /api/v1/query/multi-agent`
-```json
-{
-  "inquiry": "What procedures mitigate drillstring pack-off and gas influx?",
-  "well_name": "Well 104-B"
-}
-```
-
-### 13. Wellbore 2D Casing Schematic & SVG
-- `GET /api/v1/wellbore/{well_name}/schematic` (JSON Architecture & SVG)
-- `GET /api/v1/wellbore/{well_name}/schematic.svg` (Direct Vector SVG)
-
-### 14. Downhole Hydraulics & Surge/Swab (ECD)
-`POST /api/v1/engineering/hydraulics-ecd`
-```json
-{
-  "well_name": "Well 104-B",
-  "depth_tvd_ft": 10500.0,
-  "mud_weight_ppg": 12.2,
-  "flow_rate_gpm": 650.0,
-  "tripping_speed_fpm": 90.0,
-  "formation_pore_pressure_ppg": 11.5,
-  "formation_fracture_gradient_ppg": 14.8
-}
-```
-
-### 15. 3D Offset-Well Anti-Collision Scanner
-`POST /api/v1/engineering/anti-collision`
-```json
-{
-  "active_well_name": "Well 104-B"
-}
-```
-
-### 16. Drillstring Vibration Dysfunction Classifier
-`POST /api/v1/engineering/vibration-classify`
-```json
-{
-  "surface_rpm_mean": 110.0,
-  "rpm_max": 230.0,
-  "rpm_min": 5.0,
-  "wob_mean_klb": 25.0
-}
-```
-
-### 17. Energistics WITSML 1.4.1.1 XML Exporter
-`GET /api/v1/export/witsml/{well_name}` (Returns XML payload)
 
 ---
 
-## 6. Running Tests
+## 4. REST API Endpoint Catalog
 
-Execute the comprehensive test suite with pytest:
+| Method | Endpoint | Description |
+| :--- | :--- | :--- |
+| `GET` | `/api/v1/health` | Service healthcheck & connected component status |
+| `GET` | `/api/v1/graph/stats` | Neo4j graph entity & relationship counts |
+| `GET` | `/api/v1/dashboard` | Cytoscape.js interactive graph dashboard (HTML) |
+| `GET` | `/api/v1/graph/visual` | Graph nodes & edges formatted for Cytoscape.js |
+| `POST` | `/api/v1/ingest/text` | Ingest raw text or markdown with automated extraction |
+| `POST` | `/api/v1/ingest/file` | Ingest PDF, LAS 2.0, or TXT document |
+| `POST` | `/api/v1/query/vector` | Pure semantic vector cosine similarity search |
+| `POST` | `/api/v1/query/hybrid` | Hybrid Vector + Multi-Hop Graph Traversal + RRF Reranking |
+| `GET` | `/api/v1/query/stream` | Server-Sent Events (SSE) streaming tokenized QA |
+| `POST` | `/api/v1/query/cypher` | Text-to-Cypher agent with AST safety verification |
+| `GET` | `/api/v1/graph/communities` | Global GraphRAG entity risk communities & summaries |
+| `POST` | `/api/v1/safety/two-barrier`| Two-Barrier Rule safety guardrail (API RP 53 / NORSOK) |
+| `POST` | `/api/v1/engineering/casing-check` | API Spec 5C3 burst, collapse, tension, & MASP check |
+| `POST` | `/api/v1/engineering/hydraulics-ecd` | Bingham-Plastic ECD, pressure drops, surge/swab |
+| `POST` | `/api/v1/engineering/anti-collision` | Minimum Curvature 3D scan & ISCWSA Separation Factor |
+| `POST` | `/api/v1/engineering/vibration-classify` | Drillstring stick-slip (SSSI%), bit bounce, & whirl |
+| `POST` | `/api/v1/reports/rcfa` | Automated 5-Whys Root Cause Failure Analysis report |
+| `POST` | `/api/v1/telemetry/stream` | Real-time watchdog evaluating kick/pack-off precursors |
+| `GET` | `/api/v1/wellbore/{well_name}/schematic.svg` | 2D wellbore architecture SVG rendering |
+| `POST` | `/api/v1/query/multi-agent` | Autonomous multi-agent drilling engineering review |
+| `GET` | `/api/v1/export/witsml/{well_name}` | Energistics WITSML 1.4.1.1 XML trajectory exporter |
+
+---
+
+## 5. Domain Physics & Well Integrity Highlights
+
+### Two-Barrier Rule Guardrail (API RP 53 / NORSOK D-010)
+Validates that every operational recommendation preserves at least two independent, verified well barriers (e.g. drilling fluid hydrostatic column + casing cement sheath or tested BOP pipe/blind shear rams). Operations with fewer than two active barriers are flagged with critical safety alerts.
+
+### Bingham-Plastic Hydraulics & ECD Simulator
+Computes annular velocities, laminar/turbulent flow regimes, frictional pressure drop, Equivalent Circulating Density (ECD), and tripping surge/swab margins:
+$$ECD = \rho_{\text{mud}} + \frac{\Delta P_{\text{annular}}}{0.052 \times TVD}$$
+
+### 3D Offset-Well Anti-Collision Scanner (ISCWSA)
+Uses the Minimum Curvature method to calculate 3D spatial coordinates $(N, E, TVD)$ and evaluates the ISCWSA Separation Factor ($SF$):
+$$SF = \frac{\text{Center-to-Center Distance}}{S_1 + S_2}$$
+Triggers automatic collision avoidance warnings when $SF < 1.5$ and critical alarms when $SF < 1.0$.
+
+### Drillstring Vibration Dysfunction Classifier
+Calculates the Surface Stick-Slip Index (SSSI %):
+$$SSSI\% = \frac{\Omega_{\max} - \Omega_{\min}}{2 \times \Omega_{\text{avg}}} \times 100\%$$
+Identifies torsional stick-slip, axial bit bounce, and backward whirl to prevent downhole MWD tool failure and drillstring twist-offs.
+
+---
+
+## 6. Verification & Test Suite
+
+The repository contains an exhaustive test suite verifying ingestion, retrieval fusion, AST Cypher safety, physics simulators, and API endpoints:
 
 ```bash
 pytest -v
 ```
+
+```
+============================== 45 passed in 1.44s ==============================
+```
+
+---
+
+## 7. Extended Documentation
+
+For in-depth guides, see the [`docs/`](docs/) directory:
+- [System Architecture](docs/architecture.md)
+- [REST API Reference](docs/api_reference.md)
+- [Production Deployment Guide](docs/deployment.md)
+- [Domain Glossary & Engineering Standards](docs/domain_glossary.md)
+- [Developer Quickstart](docs/quickstart.md)
+- [Docker Deployment Guide](docker/README.md)
+
+---
+
+## 8. License
+
+This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
